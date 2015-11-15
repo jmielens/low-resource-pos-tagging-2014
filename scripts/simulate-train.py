@@ -2,6 +2,7 @@ import sys, re, os, glob, random, time, operator
 from optparse import OptionParser
 from numpy import *
 from subprocess import call,Popen,PIPE
+from collections import Counter
 
 parser = OptionParser()
 parser.add_option("-f", "--file", dest="replacefile",
@@ -14,7 +15,7 @@ parser.add_option("-m", "--model", dest="modelfile", default="temp.ser",
               help="Location to store model")
 parser.add_option("-n", "--hours", dest="hours", default=2, type="int",
               help="Number of simulated annotation hours")
-parser.add_option("-y", "--types-per-hour", dest="typesperhour", default=100, type="int",
+parser.add_option("-y", "--types-per-hour", dest="typesperhour", default=500, type="int",
               help="Number of type annotations done per hour")
 parser.add_option("-x", "--skip-training", dest="skiptraining", action="store_true", default=False,
               help="Location to store model")
@@ -41,7 +42,7 @@ if not options.skiptraining:
 	rawTraining.close()
 
 	# Write Type Training File
-	tokenCounts = {token:tokens.count(token) for token in tokens}
+	tokenCounts = Counter(tokens)
 	sortedTokenCounts = sorted(tokenCounts.items(), key=operator.itemgetter(1))
 	sortedTokenCounts.reverse()
 
