@@ -16,38 +16,43 @@ parser.add_option("-n", "--hours", dest="hours", default=2, type="int",
               help="Number of simulated annotation hours")
 parser.add_option("-y", "--types-per-hour", dest="typesperhour", default=100, type="int",
               help="Number of type annotations done per hour")
+parser.add_option("-x", "--skip-training", dest="skiptraining", action="store_true", default=False,
+              help="Location to store model")
 (options, args) = parser.parse_args()
 
-tokens = []
-typesToTake = options.hours*options.typesperhour
 
-# Read Training CoNLL File and build Form|Tag Pairs
-rawSentences = open(options.trainfile).read().split("\n\n")
-rawSentences = [s for s in rawSentences if len(s) > 0 and s[0] == "1"]
-for sentence in rawSentences:
-	for line in sentence.split("\n"):
-		if len(line.split("\t")) > 5:
-			tokens.append((line.split("\t")[1],line.split("\t")[3]))
+if not options.skiptraining:
+	tokens = []
+	typesToTake = options.hours*options.typesperhour
 
-# Write Raw Training Sentences
-rawTraining = open("temp.raw",'w')
-rawTrainingSentences = [" ".join([line.split("\t")[1] for line in sentence.split("\n") if len(line.split("\t")) > 5]) for sentence in rawSentences]
-for line in rawTrainingSentences:
-	rawTraining.write(line+"\n")
-rawTraining.close()
+	# Read Training CoNLL File and build Form|Tag Pairs
+	rawSentences = open(options.trainfile).read().split("\n\n")
+	rawSentences = [s for s in rawSentences if len(s) > 0 and s[0] == "1"]
+	for sentence in rawSentences:
+		for line in sentence.split("\n"):
+			if len(line.split("\t")) > 5:
+				tokens.append((line.split("\t")[1],line.split("\t")[3]))
 
-# Write Type Training File
-tokenCounts = {token:tokens.count(token) for token in tokens}
-sortedTokenCounts = sorted(tokenCounts.items(), key=operator.itemgetter(1))
-sortedTokenCounts.reverse()
+	# Write Raw Training Sentences
+	rawTraining = open("temp.raw",'w')
+	rawTrainingSentences = [" ".join([line.split("\t")[1] for line in sentence.split("\n") if len(line.split("\t")) > 5]) for sentence in rawSentences]
+	for line in rawTrainingSentences:
+		rawTraining.write(line+"\n")
+	rawTraining.close()
 
-typeTraining = open("temp.type",'w')
-for tokenType in sortedTokenCounts[0:typesToTake]:
-	typeTraining.write(tokenType[0][0]+"|"+tokenType[0][1]+"\n")
-typeTraining.close()
+	# Write Type Training File
+	tokenCounts = {token:tokens.count(token) for token in tokens}
+	sortedTokenCounts = sorted(tokenCounts.items(), key=operator.itemgetter(1))
+	sortedTokenCounts.reverse()
 
-# Train Tagger
-call(["./run", "--rawFile", "temp.raw", "--typesupFile", "temp.type", "--modelFile", options.modelfile])
+	typeTraining = open("temp.type",'w')
+	for tokenType in sortedTokenCounts[0:typesToTake]:
+		typeTraining.write(tokenType[0][0]+"|"+tokenType[0][1]+"\n")
+	typeTraining.close()
+
+	# Train Tagger
+	call(["./run", "--rawFile", "temp.raw", "--typesupFile", "temp.type", "--modelFile", options.modelfile])
+
 
 # Convert Target File to Raw Sentences
 rawSentences = open(options.replacefile).read().strip().split("\n\n")
